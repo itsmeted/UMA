@@ -181,6 +181,16 @@ namespace UMA
 		}
 
 		/// <summary>
+		/// Does this skeleton know a bone with specified name hash?
+		/// </summary>
+		/// <returns><c>true</c> if this instance has heard about the specified name hash; otherwise, <c>false</c>.</returns>
+		/// <param name="nameHash">Name hash.</param>
+		public virtual bool KnowsBone(int nameHash)
+		{
+			return boneHashData.ContainsKey(nameHash);
+		}
+
+		/// <summary>
 		/// Adds the transform into the skeleton.
 		/// </summary>
 		/// <param name="parentHash">Hash of parent transform name.</param>

@@ -78,7 +78,7 @@ namespace UMA
 				_skeletonModifiers[i].umaDNA = umaDna;
 
 				//check skeleton has the bone we want to change
-				if(skeleton.GetBoneGameObject(_skeletonModifiers[i].hash) == null)
+				if (!skeleton.KnowsBone(_skeletonModifiers[i].hash))
 				{
 					Debug.LogWarning("You were trying to apply skeleton modifications to a bone that didn't exist (" + _skeletonModifiers[i].hashName + ") on " + umaData.gameObject.name);
 					continue;
