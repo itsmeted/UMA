@@ -273,6 +273,26 @@ namespace UMA
 		/// <returns><c>true</c>, if transform was found, <c>false</c> otherwise.</returns>
 		/// <param name="nameHash">Name hash.</param>
 		/// <param name="boneTransform">Bone transform.</param>
+		public virtual bool TryGetBoneTransform(int nameHash, out Transform boneTransform)
+		{
+			BoneData res;
+			if (boneHashData.TryGetValue(nameHash, out res))
+			{
+				res.accessedFrame = frame;
+				boneTransform = res.boneTransform;
+				return true;
+			}
+
+			boneTransform = null;
+			return false;
+		}
+
+		/// <summary>
+		/// Tries to find bone transform in skeleton.
+		/// </summary>
+		/// <returns><c>true</c>, if transform was found, <c>false</c> otherwise.</returns>
+		/// <param name="nameHash">Name hash.</param>
+		/// <param name="boneTransform">Bone transform.</param>
 		/// <param name="transformDirty">Transform is dirty.</param>
 		/// <param name="parentBoneNameHash">Name hash of parent bone.</param>
 		public virtual bool TryGetBoneTransform(int nameHash, out Transform boneTransform, out bool transformDirty, out int parentBoneNameHash)

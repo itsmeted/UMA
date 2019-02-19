@@ -263,10 +263,15 @@ namespace UMA
 			{
 				_applyDNAPlugins[i].ApplyDNA(umaData, skeleton, DNATypeHash);
 			}
-			_overallModifiers.UpdateCharacter(umaData, skeleton, false);
+			umaData.OnCharacterCreated += UpdateOverallModifiers;
 			ApplyDnaCallbackDelegates(umaData);
 		}
 
+		public void UpdateOverallModifiers(UMAData umaData)
+		{
+			UMASkeleton skeleton = umaData.skeleton;
+			_overallModifiers.UpdateCharacter(umaData, skeleton, false);
+		}
 
 		public void ApplyDnaCallbackDelegates(UMAData umaData)
 		{

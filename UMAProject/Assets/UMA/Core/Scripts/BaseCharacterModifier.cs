@@ -53,11 +53,11 @@ namespace UMA
 		//This is the field thats assigned in the editor, but we use the hash
 #pragma warning disable 0414
 		[SerializeField]
-		private string _bone = "Position";
+		private string _bone = "Global";
 #pragma warning restore 0414
 
-		[SerializeField]
-		private int _scaleBoneHash = -1084586333;//hash of the Position Bone
+		//[SerializeField]
+		private int _scaleBoneHash = UMAUtils.StringToHash("Global");//hash of the root bone
 
 		[SerializeField]
 		private float _headRatio = 7.5f;
@@ -84,7 +84,7 @@ namespace UMA
 		//(not that flagging as [Non-Serialized] helps I now discover...
 
 		[System.NonSerialized]
-		private Dictionary<string, Transform> _mechanimBoneDict = new Dictionary<string, Transform>();
+		private Dictionary<string, int> _mechanimBoneDict = new Dictionary<string, int>();
 
 		[System.NonSerialized]
 		private string _lastRace = null;
@@ -218,6 +218,8 @@ namespace UMA
 			this._radiusAdjust = new Vector2(radiusAdjust.x, 0f);
 			this._massAdjust = new Vector3(massModifiers.x, massModifiers.y, massModifiers.z);
 			this._boundsAdjust = new Vector3(boundsAdjust.x, boundsAdjust.y, boundsAdjust.z);
+
+			_scaleBoneHash = UMAUtils.StringToHash(_bone);
 		}
 
 		#endregion
@@ -250,13 +252,16 @@ namespace UMA
 
 		public void UpdateCharacter(UMAData umaData, UMASkeleton skeleton, bool asReset)
 		{
+			_bone = "Global";
+			_scaleBoneHash = UMAUtils.StringToHash(_bone);
+
 			if (_adjustScale)
 			{
-				var baseScaleTrans = skeleton.GetBoneTransform(_scaleBoneHash);
-				if (baseScaleTrans != null)
+				var baseScale = skeleton.GetScale(_scaleBoneHash);
+				//if (baseScale != null)
 				{
 					var liveScaleResult = _liveScale != -1f ? _liveScale : _scale;
-					float finalOverallScale = baseScaleTrans.localScale.x * liveScaleResult;//hmm why does this work- its supposed to be +
+					float finalOverallScale = baseScale.x * liveScaleResult;//hmm why does this work- its supposed to be +
 					skeleton.SetScale(_scaleBoneHash, new Vector3(finalOverallScale, finalOverallScale, finalOverallScale));
 				}
 			}
@@ -265,7 +270,7 @@ namespace UMA
 				var baseRenderer = GetBaseRenderer(umaData);
 				if (baseRenderer == null)
 					return;
-				var newBounds = DoBoundsModifications(baseRenderer, umaData);
+				Bounds newBounds = DoBoundsModifications(baseRenderer, umaData);
 				UpdateCharacterHeightMassRadius(umaData, skeleton, newBounds);
 			}
 		}
@@ -371,7 +376,7 @@ namespace UMA
 		private void UpdateMechanimBoneDict(UMAData umaData, UMASkeleton skeleton)
 		{
 			//"Head" is obligatory for mechanim so we can check that too to tell us when we have switched back to this race and the skeleton was rebuilt but this Behaviour hadnt been garbage collected yet
-			if ((_lastRace == null || umaData.umaRecipe.raceData.raceName != _lastRace) || (!_mechanimBoneDict.ContainsKey("Head") || _mechanimBoneDict["Head"] == null) && umaData.umaRecipe.raceData.umaTarget == RaceData.UMATarget.Humanoid)
+			if ((_lastRace == null || umaData.umaRecipe.raceData.raceName != _lastRace) || (!_mechanimBoneDict.ContainsKey("Head")) && umaData.umaRecipe.raceData.umaTarget == RaceData.UMATarget.Humanoid)
 			{
 				_lastRace = umaData.umaRecipe.raceData.raceName;
 
@@ -383,15 +388,15 @@ namespace UMA
 					_lastRace = null;
 					return;
 				}
-				_mechanimBoneDict.Add("Head", skeleton.GetBoneTransform(UMAUtils.StringToHash((Array.Find(umaTPose.humanInfo, entry => entry.humanName == "Head").boneName))));
-				_mechanimBoneDict.Add("LeftEye", skeleton.GetBoneTransform(UMAUtils.StringToHash((Array.Find(umaTPose.humanInfo, entry => entry.humanName == "LeftEye").boneName))));//optionalBone
-				_mechanimBoneDict.Add("RightEye", skeleton.GetBoneTransform(UMAUtils.StringToHash((Array.Find(umaTPose.humanInfo, entry => entry.humanName == "RightEye").boneName))));//optionalBone
-				_mechanimBoneDict.Add("Hips", skeleton.GetBoneTransform(UMAUtils.StringToHash((Array.Find(umaTPose.humanInfo, entry => entry.humanName == "Hips").boneName))));
-				_mechanimBoneDict.Add("Neck", skeleton.GetBoneTransform(UMAUtils.StringToHash((Array.Find(umaTPose.humanInfo, entry => entry.humanName == "Neck").boneName))));//OptionalBone
-				_mechanimBoneDict.Add("LeftUpperArm", skeleton.GetBoneTransform(UMAUtils.StringToHash((Array.Find(umaTPose.humanInfo, entry => entry.humanName == "LeftUpperArm").boneName))));
-				_mechanimBoneDict.Add("RightUpperArm", skeleton.GetBoneTransform(UMAUtils.StringToHash((Array.Find(umaTPose.humanInfo, entry => entry.humanName == "RightUpperArm").boneName))));
-				_mechanimBoneDict.Add("LeftUpperLeg", skeleton.GetBoneTransform(UMAUtils.StringToHash((Array.Find(umaTPose.humanInfo, entry => entry.humanName == "LeftUpperLeg").boneName))));
-				_mechanimBoneDict.Add("RightUpperLeg", skeleton.GetBoneTransform(UMAUtils.StringToHash((Array.Find(umaTPose.humanInfo, entry => entry.humanName == "RightUpperLeg").boneName))));
+				_mechanimBoneDict.Add("Head", UMAUtils.StringToHash(umaTPose.BoneNameFromHumanName("Head")));
+				_mechanimBoneDict.Add("LeftEye", UMAUtils.StringToHash(umaTPose.BoneNameFromHumanName("LeftEye")));//optionalBone
+				_mechanimBoneDict.Add("RightEye", UMAUtils.StringToHash(umaTPose.BoneNameFromHumanName("RightEye")));//optionalBone
+				_mechanimBoneDict.Add("Hips", UMAUtils.StringToHash(umaTPose.BoneNameFromHumanName("Hips")));
+				_mechanimBoneDict.Add("Neck", UMAUtils.StringToHash(umaTPose.BoneNameFromHumanName("Neck")));//OptionalBone
+				_mechanimBoneDict.Add("LeftUpperArm", UMAUtils.StringToHash(umaTPose.BoneNameFromHumanName("LeftUpperArm")));
+				_mechanimBoneDict.Add("RightUpperArm", UMAUtils.StringToHash(umaTPose.BoneNameFromHumanName("RightUpperArm")));
+				_mechanimBoneDict.Add("LeftUpperLeg", UMAUtils.StringToHash(umaTPose.BoneNameFromHumanName("LeftUpperLeg")));
+				_mechanimBoneDict.Add("RightUpperLeg", UMAUtils.StringToHash(umaTPose.BoneNameFromHumanName("RightUpperLeg")));
 			}
 		}
 
@@ -414,31 +419,50 @@ namespace UMA
 
 					UpdateMechanimBoneDict(umaData, skeleton);
 
-					//character needs to be moved into the root again with no rotation applied
-					var umaTransform = umaData.transform;
-					var originalParent = umaData.transform.parent;
-					var originalRot = umaData.transform.localRotation;
-					var originalPos = umaData.transform.localPosition;
-					var umaCollider = umaData.gameObject.GetComponent<Collider>();
-					bool prevColliderEnabled = umaCollider != null ? umaCollider.enabled : false;
-
 					//if there is a collider, disable it before we move anything
-					if (umaCollider)
-						umaCollider.enabled = false;
+					//var umaCollider = umaData.gameObject.GetComponent<Collider>();
+					//bool prevColliderEnabled = false;
+					//if (umaCollider)
+					//{
+					//	prevColliderEnabled = umaCollider.enabled;
+					//	umaCollider.enabled = false;
+					//}
 
-					umaTransform.SetParent(null, false);
-					umaTransform.localRotation = Quaternion.identity;
-					umaTransform.localPosition = Vector3.zero;
+					Transform head;
+					if (!skeleton.TryGetBoneTransform(_mechanimBoneDict["Head"], out head)) return;
+
+					Transform neck;
+					skeleton.TryGetBoneTransform(_mechanimBoneDict["Neck"], out neck);
+
+					Transform leftEye;
+					skeleton.TryGetBoneTransform(_mechanimBoneDict["LeftEye"], out leftEye);
+
+					Transform rightEye;
+					skeleton.TryGetBoneTransform(_mechanimBoneDict["RightEye"], out rightEye);
+
+					Transform leftUpperArm;
+					skeleton.TryGetBoneTransform(_mechanimBoneDict["LeftUpperArm"], out leftUpperArm);
+
+					Transform rightUpperArm;
+					skeleton.TryGetBoneTransform(_mechanimBoneDict["RightUpperArm"], out rightUpperArm);
+
+					Transform leftUpperLeg;
+					skeleton.TryGetBoneTransform(_mechanimBoneDict["LeftUpperLeg"], out leftUpperLeg);
+
+					Transform rightUpperLeg;
+					skeleton.TryGetBoneTransform(_mechanimBoneDict["RightUpperLeg"], out rightUpperLeg);
+
+					Debug.Log("Doing the bullshit");
 
 					if (_adjustHeight)
 					{
 						//Classically a human is apprx 7.5 heads tall, but we only know the height to the base of the head bone
 						//usually head bone is actually usually in line with the lips, making the base of the chin, 1/3rd down the neck
 						//so if we have the optional neck bone use that to estimate the base of the chin
-						chinHeight = _mechanimBoneDict["Head"].position.y;
-						if (_mechanimBoneDict["Neck"] != null)
+						chinHeight = head.position.y;
+						if (neck != null)
 						{
-							chinHeight = _mechanimBoneDict["Neck"].position.y + (((_mechanimBoneDict["Head"].position.y - _mechanimBoneDict["Neck"].position.y) / 3f) * 2f);
+							chinHeight = neck.position.y + (head.position.y - neck.position.y) * 0.66f;
 						}
 						//apply the headRatio (by default this is 7.5)
 						chinHeight = (chinHeight / 6.5f) * (_headRatio - 1);
@@ -447,16 +471,9 @@ namespace UMA
 						//but bobble headed charcaters (toons), children or dwarves etc have bigger heads proportionally 
 						//so their overall height will greater than (chinHeight / 6.5) * 7.5
 						//If we have the eyes we can use those to calculate the size of the head better because classically the distance from the chin to the eyes will be half the head height
-						if (_mechanimBoneDict["LeftEye"] != null || _mechanimBoneDict["RightEye"] != null)
+						if (leftEye != null && rightEye != null)
 						{
-							var eyeHeight = 0f;
-							//if we have both eyes get the average
-							if (_mechanimBoneDict["LeftEye"] != null && _mechanimBoneDict["RightEye"] != null)
-								eyeHeight = (_mechanimBoneDict["LeftEye"].position.y + _mechanimBoneDict["RightEye"].position.y) / 2f;
-							else if (_mechanimBoneDict["LeftEye"] != null)
-								eyeHeight = _mechanimBoneDict["LeftEye"].position.y;
-							else if (_mechanimBoneDict["RightEye"] != null)
-								eyeHeight = _mechanimBoneDict["RightEye"].position.y;
+							var eyeHeight = (leftEye.position.y + rightEye.position.y) / 2f;
 
 							headHeight = ((eyeHeight - chinHeight) * 2f);
 							//because we do this the actual headRatio doesnt *feel* right
@@ -473,9 +490,9 @@ namespace UMA
 
 					if (_adjustRadius)
 					{
-						float shouldersWidth = Mathf.Abs(_mechanimBoneDict["LeftUpperArm"].position.x - _mechanimBoneDict["RightUpperArm"].position.x);
+						float shouldersWidth = Vector3.Distance(leftUpperArm.position, rightUpperArm.position);
 						//Also female charcaters tend to have hips wider than their shoulders, so check that
-						float hipsWidth = Mathf.Abs(_mechanimBoneDict["LeftUpperLeg"].position.x - _mechanimBoneDict["RightUpperLeg"].position.x);
+						float hipsWidth = Vector3.Distance(leftUpperLeg.position, rightUpperLeg.position);
 						//the outerWidth of the hips is larger than this because the thigh muscles are so big so make this 1/3rd bigger
 						hipsWidth = (hipsWidth / 2) * 3;
 
@@ -483,10 +500,10 @@ namespace UMA
 						headWidth = shouldersWidth / 2.75f;
 						//but bobble headed charcaters (toons), children or dwarves etc have bigger heads proportionally and the head can be wider than the shoulders
 						//so if we have eye bones use them to calculate head with
-						if (_mechanimBoneDict["LeftEye"] != null && _mechanimBoneDict["RightEye"] != null)
+						if (leftEye != null && rightEye != null)
 						{
 							//clasically a face is 5* the width of the eyes where the distance between the pupils is 2 * eye width
-							var eyeWidth = Mathf.Abs(_mechanimBoneDict["LeftEye"].position.x - _mechanimBoneDict["RightEye"].position.x) / 2;
+							var eyeWidth = Vector3.Distance(leftEye.position, rightEye.position) / 2;
 							headWidth = eyeWidth * 5f;
 						}
 						charWidth = (shouldersWidth > headWidth || hipsWidth > headWidth) ? (shouldersWidth > hipsWidth ? shouldersWidth : hipsWidth) : headWidth;
@@ -495,14 +512,10 @@ namespace UMA
 						//capsule colliders break down in this scenario though (switch race to SkyCar to see what I mean), so would we want to change the orientation of the collider or the type?
 						//does the collider orientation have any impact on physics?
 					}
-					//Set the UMA back
-					umaTransform.SetParent(originalParent, false);
-					umaTransform.localRotation = originalRot;
-					umaTransform.localPosition = originalPos;
 
 					//set any collider to its original setting
-					if (umaCollider)
-						umaCollider.enabled = prevColliderEnabled;
+					//if (umaCollider)
+						//umaCollider.enabled = prevColliderEnabled;
 				}
 			}
 			else //if its a car or a castle or whatever use the bounds
