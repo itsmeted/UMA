@@ -176,6 +176,10 @@ namespace UMA.PoseTools
 
 				if ((weight > minWeight) && (pose != null))
 				{
+					foreach (UMABonePose.PoseBone poseBone in pose.poses)
+					{
+						umaData.skeleton.Restore(poseBone.hash);
+					}
 					pose.ApplyPose(umaData.skeleton, weight);
 				}
 			}
